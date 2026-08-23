@@ -79,7 +79,7 @@ export default function RootLayout() {
             headerShown: false,
           }}
         >
-          <Stack.Screen name="(app)" />
+          <Stack.Screen name="(public)" />
         </Stack>
       </View>
     </ThemeProvider>

@@ -12,12 +12,12 @@ const Index = () => {
         <Pressable
           onPress={() =>
             router.push({
-              pathname: "/(public)/example",
+              pathname: "/create",
               params: { name: "atharva" },
             })
           }
         >
-          <Text>Go to Example</Text>
+          <Text>Go to Create</Text>
         </Pressable>
       </View>
     </SafeAreaView>
