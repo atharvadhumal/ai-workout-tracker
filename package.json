@@ -6,8 +6,10 @@
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo/ui": "~57.0.12",
     "@expo/vector-icons": "^15.0.2",
+    "@neondatabase/serverless": "^1.1.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "babel-preset-expo": "^57.0.7",
+    "drizzle-orm": "^0.45.2",
     "expo": "~57.0.15",
     "expo-constants": "~57.0.13",
     "expo-device": "~57.0.1",
@@ -36,6 +38,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "drizzle-kit": "^0.31.10",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -44,7 +47,12 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:seed": "tsx src/db/seed/index.ts",
+    "db:studio": "drizzle-kit studio"
   },
   "private": true
 }
