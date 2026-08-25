@@ -13,6 +13,8 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { useEffect, useState } from "react";
+import { KeyboardProvider } from "react-native-keyboard-controller";
+import { authClient } from "@/libs/auth-client";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -45,43 +47,49 @@ export default function RootLayout() {
   const { colorScheme } = useColorScheme();
   const scheme = colorScheme ?? "light";
   const backgroundColor = appThemeColors[scheme].background;
+  const { data: session, isPending } = authClient.useSession();
+
+  const fontReady = loaded || !!error;
 
   useEffect(() => {
-    if (loaded || error) {
-      SplashScreen.hideAsync().finally(() => {
-        setAppReady(true);
-      });
+    if (!appReady && fontReady && !isPending) {
+      SplashScreen.hideAsync().then(() => setAppReady(true));
     }
-  }, [loaded, error]);
+  }, [isPending, appReady, fontReady]);
 
-  if (!appReady) {
-    return null;
-  }
+  if (!appReady) return null;
 
   return (
-    <ThemeProvider value={navigationThemes[scheme]}>
-      <View
-        style={[
-          appThemes[scheme],
-          {
-            backgroundColor,
-            flex: 1,
-          },
-        ]}
-      >
-        <StatusBar
-          key={scheme}
-          animated
-          style={scheme === "dark" ? "light" : "dark"}
-        />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-          }}
+    <KeyboardProvider>
+      <ThemeProvider value={navigationThemes[scheme]}>
+        <View
+          style={[
+            appThemes[scheme],
+            {
+              backgroundColor,
+              flex: 1,
+            },
+          ]}
         >
-          <Stack.Screen name="(public)" />
-        </Stack>
-      </View>
-    </ThemeProvider>
+          <StatusBar
+            key={scheme}
+            animated
+            style={scheme === "dark" ? "light" : "dark"}
+          />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+            }}
+          >
+            <Stack.Protected guard={!session}>
+              <Stack.Screen name="(public)" />
+            </Stack.Protected>
+            <Stack.Protected guard={!!session}>
+              <Stack.Screen name="(app)" />
+            </Stack.Protected>
+          </Stack>
+        </View>
+      </ThemeProvider>
+    </KeyboardProvider>
   );
 }

@@ -1,13 +1,10 @@
 import Button from "@/components/ui/button";
 import SafeAreaScreen from "@/components/ui/safe-area-screen";
-import {
-  getOnboardingAnswers,
-  resetOnboardingAnswers,
-} from "@/constants/onboarding";
+import { isOnboardingCompleted } from "@/constants/onboarding";
 import { authClient } from "@/libs/auth-client";
 import {
-  SignUpFormValues,
-  signUpSchema,
+  SignInFormValues,
+  signInSchema,
 } from "@/libs/validations/auth-validation";
 import { useAppThemeColor } from "@/theme/app-theme";
 import { Feather, FontAwesome } from "@expo/vector-icons";
@@ -31,51 +28,50 @@ import {
 
 const googleLogo = require("../../../assets/images/google-logo.png");
 
-const SignUp = () => {
+const SignIn = () => {
   const router = useRouter();
   const foreground = useAppThemeColor("foreground");
   const iconColor = useAppThemeColor("mutedForeground");
-  const primaryForeground = useAppThemeColor("primaryForeground");
   const [isPending, setIsPending] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
+
+  const hasCompletedOnboarding = isOnboardingCompleted();
+  const signUpHref = hasCompletedOnboarding
+    ? ("/sign-up" as const)
+    : ({
+        pathname: "/onboarding/[step]",
+        params: { step: "gender" },
+      } as const);
+
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<SignUpFormValues>({
+  } = useForm<SignInFormValues>({
     defaultValues: {
-      fullName: "",
       email: "",
       password: "",
     },
     mode: "onTouched",
-    resolver: zodResolver(signUpSchema),
+    resolver: zodResolver(signInSchema),
     shouldFocusError: false,
   });
 
-  const onSubmit = handleSubmit(async ({ email, fullName, password }) => {
-    const result = getOnboardingAnswers();
-    if (!result.success) {
-      router.replace("/welcome");
-      return;
-    }
+  const onSubmit = handleSubmit(async ({ email, password }) => {
     setIsPending(true);
     try {
-      const { error } = await authClient.signUp.email({
+      const { error } = await authClient.signIn.email({
         email,
-        name: fullName,
         password,
-        ...result.data,
       });
       if (error) {
         Alert.alert("Could not create account", error.message);
         return;
       }
-      resetOnboardingAnswers();
     } finally {
       setIsPending(false);
     }
@@ -108,44 +104,14 @@ const SignUp = () => {
         <View className="flex-grow px-5 pb-5 pt-12">
           <View>
             <Text className="font-inter-bold text-[28px] leading-9 tracking-[-0.6px] text-foreground">
-              Create account
+              Welcome back
             </Text>
             <Text className="mt-1 font-inter text-[14px] leading-5 text-muted-foreground">
-              Sign up to get started
+              Sign in to continue
             </Text>
           </View>
 
-          <View className="mt-9 gap-5">
-            <Controller
-              control={control}
-              name="fullName"
-              render={({ field: { value, onBlur, onChange } }) => (
-                <View className="gap-2">
-                  <Text className="font-inter-medium text-[14px] text-foreground">
-                    Full Name
-                  </Text>
-                  <TextInput
-                    textContentType="name"
-                    autoComplete="name"
-                    autoCapitalize="words"
-                    value={value}
-                    className={`h-14 rounded-xl border bg-input px-4 font-inter text-[14px] text-foreground ${errors.fullName ? "border-destructive" : "border-input-border"}`}
-                    placeholder="John Doe"
-                    placeholderTextColor={iconColor}
-                    selectionColor={foreground}
-                    returnKeyType="next"
-                    onSubmitEditing={() => emailInputRef.current?.focus()}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                  />
-                  {errors.fullName && (
-                    <Text className="font-inter text-[12px] text-destructive">
-                      {errors.fullName.message}
-                    </Text>
-                  )}
-                </View>
-              )}
-            />
+          <View className="mt-10 gap-6">
             <Controller
               control={control}
               name="email"
@@ -179,60 +145,71 @@ const SignUp = () => {
               )}
             />
 
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onBlur, onChange, value } }) => (
-                <View className="gap-2">
-                  <Text className="font-inter-medium text-[14px] text-foreground">
-                    Password
-                  </Text>
-                  <View
-                    className={`h-14 flex-row items-center rounded-xl border
-                       bg-input px-4 ${errors.password ? "border-destructive" : "border-input-border"}`}
-                  >
-                    <TextInput
-                      ref={passwordInputRef}
-                      autoCapitalize="none"
-                      autoComplete="new-password"
-                      textContentType="newPassword"
-                      className="h-full flex-1 font-inter text-[14px] text-foreground"
-                      value={value}
-                      placeholder="Create a password"
-                      placeholderTextColor={iconColor}
-                      returnKeyType="done"
-                      secureTextEntry={!isPasswordVisible}
-                      selectionColor={foreground}
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      onSubmitEditing={onSubmit}
-                    />
-                    <Pressable
-                      accessibilityLabel={
-                        isPasswordVisible ? "Hide password" : "Show password"
-                      }
-                      accessibilityRole="button"
-                      className="-mr-3 h-11 w-11 items-center justify-center"
-                      hitSlop={4}
-                      onPress={() =>
-                        setIsPasswordVisible((current) => !current)
-                      }
-                    >
-                      <Feather
-                        color={iconColor}
-                        name={isPasswordVisible ? "eye-off" : "eye"}
-                        size={22}
-                      />
-                    </Pressable>
-                  </View>
-                  {errors.password && (
-                    <Text className="font-inter text-[12px] text-destructive">
-                      {errors.password.message}
+            <View>
+              <Controller
+                control={control}
+                name="password"
+                render={({ field: { onBlur, onChange, value } }) => (
+                  <View className="gap-2">
+                    <Text className="font-inter-medium text-[14px] text-foreground">
+                      Password
                     </Text>
-                  )}
-                </View>
-              )}
-            />
+                    <View
+                      className={`h-14 flex-row items-center rounded-xl border
+                       bg-input px-4 ${errors.password ? "border-destructive" : "border-input-border"}`}
+                    >
+                      <TextInput
+                        ref={passwordInputRef}
+                        autoCapitalize="none"
+                        autoComplete="new-password"
+                        textContentType="newPassword"
+                        className="h-full flex-1 font-inter text-[14px] text-foreground"
+                        value={value}
+                        placeholder="Create a password"
+                        placeholderTextColor={iconColor}
+                        returnKeyType="done"
+                        secureTextEntry={!isPasswordVisible}
+                        selectionColor={foreground}
+                        onBlur={onBlur}
+                        onChangeText={onChange}
+                        onSubmitEditing={onSubmit}
+                      />
+                      <Pressable
+                        accessibilityLabel={
+                          isPasswordVisible ? "Hide password" : "Show password"
+                        }
+                        accessibilityRole="button"
+                        className="-mr-3 h-11 w-11 items-center justify-center"
+                        hitSlop={4}
+                        onPress={() =>
+                          setIsPasswordVisible((current) => !current)
+                        }
+                      >
+                        <Feather
+                          color={iconColor}
+                          name={isPasswordVisible ? "eye-off" : "eye"}
+                          size={22}
+                        />
+                      </Pressable>
+                    </View>
+                    {errors.password && (
+                      <Text className="font-inter text-[12px] text-destructive">
+                        {errors.password.message}
+                      </Text>
+                    )}
+                  </View>
+                )}
+              />
+
+              <Pressable
+                className="mt-3 min-h-11 self-end justify-center"
+                onPress={() => alert("Password reset")}
+              >
+                <Text className="font-inter-semibold text-[13px] text-primary">
+                  Forgot Password?
+                </Text>
+              </Pressable>
+            </View>
           </View>
 
           <Button
@@ -241,7 +218,7 @@ const SignUp = () => {
             isLoading={isPending}
             onPress={onSubmit}
           >
-            Sign Up
+            Sign In
           </Button>
 
           <View className="my-7 flex-row items-center gap-4">
@@ -293,15 +270,15 @@ const SignUp = () => {
 
           <View className="mt-auto flex-row items-center justify-center pt-10">
             <Text className="font-inter text-[13px] text-muted-foreground">
-              Already have an account?{" "}
+              Don&apos;t have an account?{" "}
             </Text>
-            <Link href="/sign-in" asChild replace>
+            <Link href={signUpHref} asChild replace>
               <Pressable
                 accessibilityLabel="Sign in to your account"
                 className="-my-3 min-h-11 justify-center px-1"
               >
                 <Text className="font-inter-semibold text-[13px] text-primary">
-                  Sign In
+                  Sign Up
                 </Text>
               </Pressable>
             </Link>
@@ -313,4 +290,4 @@ const SignUp = () => {
   );
 };
 
-export default SignUp;
+export default SignIn;
